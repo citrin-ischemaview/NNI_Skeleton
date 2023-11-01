@@ -1,0 +1,5 @@
+{
+    "QualitySpeedTradeoff": {"_type":"uniform", "_value": [0.1,1.0]},
+    "MedialSpeedTradeoff":{"_type":"uniform","_value":[0.1,1.0]},
+    "MinEdgeLength":{"_type":"uniform","_value":[0.6,1.2]}
+}

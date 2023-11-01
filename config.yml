@@ -1,0 +1,21 @@
+authorName: default
+experimentName: NNI_TEST_NEW_SCRIPT2
+trialConcurrency: 3
+#maxExecDuration: 1h
+maxTrialNum: 16
+#choice: local, remote, pai
+trainingServicePlatform: local
+searchSpacePath: search_space.json
+#choice: true, false
+useAnnotation: false
+tuner:
+  #choice: TPE, Random, Anneal, Evolution, BatchTuner, MetisTuner, GPTuner
+  #SMAC (SMAC should be installed through nnictl)
+  builtinTunerName: GPTuner
+  classArgs:
+    #choice: maximize, minimize
+    optimize_mode: minimize
+trial:
+  command: python RunSkeletonsMain.py
+  codeDir: .
+  gpuNum: 0
