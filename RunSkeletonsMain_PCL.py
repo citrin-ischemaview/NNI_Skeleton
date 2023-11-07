@@ -6,11 +6,13 @@ import json
 import shutil
 import nni
 import SKJson2VTk
+import PCL_COMPARE
 
 # Constants
 OUTPUT_DIR = "."
-INPUT_STL_DIR = "C:\\Users\\mcitrin\\Documents\\python_scripts\\AAA_NNI\\SELECTED_ALL_STLS"
-EXPERIMENT_NAME = "RUN_MONDAYTEST_11-6_NEW-PARAMS"
+INPUT_STL_DIR = "C:\\Users\\mcitrin\\Documents\\python_scripts\\AAA_NNI\\VMTK_COMPARE_STLS"
+VMTK_VTKS_DIR = "C:\\Users\\mcitrin\\Documents\\python_scripts\\AAA_NNI\\VMTK_CERTERLINE_VTKS_ASCII"
+EXPERIMENT_NAME = "RUN_TUSEDAYTEST_11-7_PCL_TEST"
 SEARCH_SPACE_JSON = "C:\\Users\\mcitrin\\Documents\\python_scripts\\AAA_NNI\\Skeletonization\\search_space.json"
 SKELETONIZE_EXE = "C:\\Users\\mcitrin\\Documents\\Submodule_Test\\build\\submodules\\Release\\SK_Lite.exe"
 SKETLTON_TIMEOUT = 180
@@ -40,6 +42,7 @@ DEFAULT_PARAMETERS = {
 # dictonary for computed metrics of a trial
 TRIAL_METRICS = {
     "passed":0,
+    "pcl_score":0,
     "bifurcations": 0,
     "termina": 0,
     "avg_degree": 0,
@@ -234,12 +237,12 @@ def create_reports(dirs):
     main_report_path = os.path.join(dirs['experiment_main'],"Main_Report.csv")
     if not os.path.isfile(main_report_path):
         with open(main_report_path, "a") as txt_file:
-                 txt_file.write('Trial_Id, QST, MST, MinEL, Cases_Ran, default, avg_bifurcations, avg_termina, avg_degree, avg_sk_len\n')
+                 txt_file.write('Trial_Id, QST, MST, MinEL, Cases_Ran, default, avg_pcl_score, avg_bifurcations, avg_termina, avg_degree, avg_sk_len\n')
 
     # create trial report
     trail_report_path = os.path.join(dirs['trial_main'],"Trial_Report.csv")
     with open(trail_report_path, "w") as txt_file:
-            txt_file.write('Case, passed, bifurcations, terminal_cnt, avg_degree, skeleton_length, Total_Time\n')
+            txt_file.write('Case, passed, pcl_score, bifurcations, terminal_cnt, avg_degree, skeleton_length, Total_Time\n')
 
     return {
         'experiment': main_report_path,
@@ -251,6 +254,7 @@ def write_trial_data(txt_file_path, case_name, data):
         with open(txt_file_path, "a") as txt_file:
             txt_file.write(case_name + "," + 
                            str(data["passed"]) + "," + 
+                           str(data["pcl_score"]) + "," + 
                            str(data["bifurcations"]) + "," + 
                            str(data["termina"]) + "," + 
                            str(data["avg_degree"]) + "," + 
@@ -266,6 +270,7 @@ def write_experiment_data(txt_file_path, trial_id, passed_cases, data):
                             str(data["MinEdgeLength"]) + "," +
                             str(passed_cases) + "," +
                             str(data['default']) + "," + 
+                            str(data['avg_pcl_score']) + "," + 
                             str(data['avg_bifurcations']) + "," + 
                             str(data['avg_termina']) + "," + 
                             str(data['avg_degree']) + "," + 
@@ -317,6 +322,10 @@ def run_trial(input_stl_files, dirs, report_paths, params):
             case_metrics["total_time"] = run_time
             SKJson2VTk.WriteVesselAndCenterlineVtk(skeletonData_file, case_name, dirs["trial_vtk"])
 
+            vtk_file = findFile(VMTK_VTKS_DIR, case_name+'.vtk')
+            if vtk_file != "NULL":
+                case_metrics["pcl_score"] = PCL_COMPARE.PCL_COMPARE_2_VMTK(skeletonData_file, vtk_file)
+
         # if run failed write std output
         else:
             run_error_log_file = os.path.join(skeleton_output_dir,case_name + "_stdout.txt")
@@ -341,6 +350,9 @@ def analize_trial(trial_data, experiment_Report_path, trial_id, args):
     sum_sk_len = 0
     avg_sk_len = 0
     passed_cnt = 0
+    avg_pcl_score = 0
+    sum_pcl_score = 0
+    passed_cnt = 0
 
     default_score = 0
     for case in trial_data:
@@ -351,22 +363,24 @@ def analize_trial(trial_data, experiment_Report_path, trial_id, args):
             sum_termina += data["termina"]
             sum_degree += data["avg_degree"]
             sum_sk_len += data["skeleton_length"]
+            sum_pcl_score += data["pcl_score"]
             passed_cnt += 1
 
     if passed_cnt != 0:
         avg_bifurcations = sum_bifurcations / passed_cnt
         avg_termina = sum_termina / passed_cnt
         avg_degree = sum_degree / passed_cnt
-        avg_sk_len += sum_sk_len / passed_cnt
+        avg_sk_len = sum_sk_len / passed_cnt
+        avg_pcl_score = sum_pcl_score / passed_cnt
 
     if passed_cnt:
-        default_score = avg_bifurcations
+        default_score = avg_pcl_score
     else:
         default_score = 1e+10
                  
     # ------------------------------- Report -------------------------------
     # ----------------------------------------------------------------------
-    scores = {'default': default_score, 'avg_bifurcations': avg_bifurcations, 'avg_termina': avg_termina, 'avg_degree': avg_degree, 'avg_sk_len': avg_sk_len}
+    scores = {'default': default_score, 'avg_pcl_score': avg_pcl_score, 'avg_bifurcations': avg_bifurcations, 'avg_termina': avg_termina, 'avg_degree': avg_degree, 'avg_sk_len': avg_sk_len}
     report_data = scores.copy()
     report_data["QualitySpeedTradeoff"] = args["QualitySpeedTradeoff"]
     report_data["MedialSpeedTradeoff"] = args["MedialSpeedTradeoff"]

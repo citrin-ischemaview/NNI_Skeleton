@@ -2,7 +2,7 @@ authorName: default
 experimentName: NNI_TEST_NEW_SCRIPT2
 trialConcurrency: 3
 #maxExecDuration: 1h
-maxTrialNum: 16
+maxTrialNum: 500
 #choice: local, remote, pai
 trainingServicePlatform: local
 searchSpacePath: search_space.json
